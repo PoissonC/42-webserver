@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -14,16 +13,16 @@
 
 int main (int argc, char *argv[])
 {
-    int    len, rc, on = 1;
+    int    rc, on = 1; //local
     int    listen_sd = -1, new_sd = -1;
     int    close_conn;
     char   buffer[80];
-    struct sockaddr_in6   addr;
+    struct sockaddr_in   addr;
     int    epoll_fd, nfds, i;
     struct epoll_event ev, events[MAX_EVENTS];
 
     /* Create an AF_INET6 stream socket to receive incoming connections on */
-    listen_sd = socket(AF_INET6, SOCK_STREAM, 0);
+    listen_sd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (listen_sd < 0)
     {
         perror("socket() failed");
@@ -39,20 +38,11 @@ int main (int argc, char *argv[])
         exit(-1);
     }
 
-    /* Set socket to be nonblocking */
-    rc = ioctl(listen_sd, FIONBIO, (char *)&on);
-    if (rc < 0)
-    {
-        perror("ioctl() failed");
-        close(listen_sd);
-        exit(-1);
-    }
-
     /* Bind the socket */
     memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    memcpy(&addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
-    addr.sin6_port = htons(SERVER_PORT);
+    addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(SERVER_PORT);
     rc = bind(listen_sd, (struct sockaddr *)&addr, sizeof(addr));
     if (rc < 0)
     {
@@ -106,7 +96,6 @@ int main (int argc, char *argv[])
                 /* Accept all incoming connections */
                 while ((new_sd = accept(listen_sd, NULL, NULL)) != -1)
                 {
-                    ioctl(new_sd, FIONBIO, (char *)&on); // Set non-blocking mode
                     ev.events = EPOLLIN;
                     ev.data.fd = new_sd;
                     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_sd, &ev) == -1)
