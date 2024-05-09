@@ -1,25 +1,21 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Settings.hpp                                       :+:      :+:    :+:   */
+/*   Settings.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/02 22:05:06 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/09 21:22:46 by ychen2           ###   ########.fr       */
+/*   Created: 2024/05/09 21:08:04 by ychen2            #+#    #+#             */
+/*   Updated: 2024/05/09 21:26:16 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#pragma once
+#include "Settings.hpp"
+#include <cstring>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-class Settings {
-	public:
-		Settings(u_int16_t port);
-	
-	private:
-		int					socket_fd;
-		struct sockaddr_in	addr;
-};
+Settings::Settings(u_int16_t port) {
+    memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(port);
+}

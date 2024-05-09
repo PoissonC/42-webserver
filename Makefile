@@ -3,7 +3,7 @@ CC 			= c++
 CFLAGS 		= -Wall -Wextra -Werror -std=c++98 #-fsanitize=address
 
 #Sources and objects
-SRC = main.cpp Server.cpp
+SRC = main.cpp Server.cpp Settings.cpp
 OBJ = $(SRC:.cpp=.o)
 HDR = Server.hpp Settings.hpp
 
