@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
+/*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/02 22:00:02 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/09 22:06:21 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/05/10 13:05:42 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,35 +17,51 @@
 #include <sys/epoll.h>
 #include "Settings.hpp"
 #define BUFFER_SIZE 80
+#define BACK_LOG 32
+#define MAX_EVENTS 16
 
 class Server {
 
 	public:
 		//Constructer, it creates the non-blocking epoll instance, listen to the ip/port from settings
+		//	calling epoll_create, socket, setsockopt, bind, listen, epoll_ctl
 		Server(std::vector<Settings> & servers);
 
-		// member methods
-		
+		//member methods
 
-		// exceptions
+		//	Start waiting for events
+		//		calling epoll_wait, accept, recv, send
+		void	run();
+
+		//exceptions
 		class AlreadyConstructed: public std::exception {
 			public:
-				// The server instance is already constructed.
+				//The server instance is already constructed.
 				virtual const char* what() const throw();
 		};
 		class CreatEpollFail: public std::exception {
 			public:
-				// Epoll_create1() failed
+				//Epoll_create() failed
 				virtual const char* what() const throw();
 		};
 		class SocketFail: public std::exception {
 			public:
-				// socket() failed
+				//socket() failed
 				virtual const char* what() const throw();
 		};
 		class SetSockOptFail: public std::exception {
 			public:
-				// setsockopt() failed
+				//setsockopt() failed
+				virtual const char* what() const throw();
+		};
+		class BindFail: public std::exception {
+			public:
+				//bind() failed
+				virtual const char* what() const throw();
+		};
+		class ListenFail: public std::exception {
+			public:
+				//listen() failed
 				virtual const char* what() const throw();
 		};
 	private:

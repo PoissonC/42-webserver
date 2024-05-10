@@ -45,6 +45,11 @@
 		"limits": "cpp",
 		"numbers": "cpp",
 		"cinttypes": "cpp",
-		"typeinfo": "cpp"
+		"typeinfo": "cpp",
+		"iostream": "cpp",
+		"cstring": "cpp",
+		"fstream": "cpp",
+		"istream": "cpp",
+		"sstream": "cpp"
 	}
 }

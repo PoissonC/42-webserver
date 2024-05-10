@@ -1,25 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Settings.hpp                                       :+:      :+:    :+:   */
+/*   State.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/02 22:05:06 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/10 12:46:25 by yu               ###   ########.fr       */
+/*   Created: 2024/05/10 14:25:03 by yu                #+#    #+#             */
+/*   Updated: 2024/05/10 14:30:39 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#pragma once
+#include "State.hpp"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-class Settings {
-	public:
-		Settings(u_int16_t port);
-		friend class Server;
-	private:
-		// int					_socket_fd; it depends
-		struct sockaddr_in	_addr;
-};
+void	fill_write_buffer(t_state *state, std::string const &response) {
+    for (std::string::const_iterator it = response.begin(); it != response.end(); it++) {
+        state->write_buffer.push(*it);
+    }
+}

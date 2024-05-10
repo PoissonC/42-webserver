@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
+/*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:04:57 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/10 00:30:38 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/05/10 12:52:25 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,18 @@
 
 
 int main () {
-	// Server server();
 	try{
-		throw std::exception();
+		std::vector<Settings> settings;
+		settings.push_back(Settings(8080)); 
+		settings.push_back(Settings(12345)); 
+		Server server(settings);
+		
 	}
 	catch (std::exception & e){
-		std::cerr << e.what() << std::endl;
+		if (errno != 0)
+			perror(e.what());
+		else
+			std::cerr << e.what() << std::endl;
 	}
 
 	return 0;

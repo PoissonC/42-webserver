@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
+/*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/09 23:02:21 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/05/10 12:59:31 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ Server::Server(std::vector<Settings> & servers) {
 	_constructed = true;
 
 	// create epoll instance
-	_epoll_fd = epoll_create1(0);
+	_epoll_fd = epoll_create(1);
 	if (_epoll_fd == -1)
 		throw CreatEpollFail();
 
@@ -46,21 +46,15 @@ Server::Server(std::vector<Settings> & servers) {
 				close(_epoll_fd);
 				throw SetSockOptFail();
 			}
-			rc = bind(new_socket_fd, (struct sockaddr *)&(it->_addr), sizeof(addr));
-			if (rc < 0)
-			{
-				perror("bind() failed");
-				close(listen_sd);
-				exit(-1);
+			if (bind(new_socket_fd, (struct sockaddr *)&(it->_addr), sizeof(it->_addr)) < 0) {
+				close_fds(_servers_fd);
+				close(_epoll_fd);
+				throw BindFail();
 			}
-
-			/* Set the listen back log */
-			rc = listen(listen_sd, 32);
-			if (rc < 0)
-			{
-				perror("listen() failed");
-				close(listen_sd);
-				exit(-1);
+			if (listen(new_socket_fd, BACK_LOG) < 0) {
+				close_fds(_servers_fd);
+				close(_epoll_fd);
+				throw ListenFail();
 			}
 			
 		}
@@ -74,7 +68,7 @@ const char* Server::AlreadyConstructed::what() const throw() {
 }
 
 const char* Server::CreatEpollFail::what() const throw() {
-	return "epoll_create1() failed.";
+	return "epoll_create() failed.";
 }
 
 const char* Server::SocketFail::what() const throw() {
@@ -84,3 +78,12 @@ const char* Server::SocketFail::what() const throw() {
 const char* Server::SetSockOptFail::what() const throw() {
 	return "setsockopt() failed.";
 }
+
+const char* Server::BindFail::what() const throw() {
+	return "bind() failed.";
+}
+
+const char* Server::ListenFail::what() const throw() {
+	return "listen() failed.";
+}
+
