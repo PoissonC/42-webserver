@@ -1,5 +1,6 @@
-#include <arpa/inet.h> 
 #include <stdio.h>
+#include <unistd.h>
 int main(){
-	printf("%u\n", inet_addr("127.0.0.1"));
+	int wc = write(1, "hello world\n", 100);
+	printf("%d\n", wc);
 }

@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/02 22:00:02 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/10 13:05:42 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/11 15:59:52 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ class Server {
 		//Constructer, it creates the non-blocking epoll instance, listen to the ip/port from settings
 		//	calling epoll_create, socket, setsockopt, bind, listen, epoll_ctl
 		Server(std::vector<Settings> & servers);
-
+		~Server();
 		//member methods
 
 		//	Start waiting for events
@@ -41,7 +41,17 @@ class Server {
 		};
 		class CreatEpollFail: public std::exception {
 			public:
-				//Epoll_create() failed
+				//epoll_create() failed
+				virtual const char* what() const throw();
+		};
+		class EpollCtlFail: public std::exception {
+			public:
+				//epoll_ctl() failed
+				virtual const char* what() const throw();
+		};
+		class EpollWaitFail: public std::exception {
+			public:
+				//epoll_wait() failed
 				virtual const char* what() const throw();
 		};
 		class SocketFail: public std::exception {
@@ -64,10 +74,16 @@ class Server {
 				//listen() failed
 				virtual const char* what() const throw();
 		};
+		class AcceptFail: public std::exception {
+			public:
+				//accept() failed
+				virtual const char* what() const throw();
+		};
+
 	private:
 		static bool				_constructed;
 		int						_epoll_fd;
-		std::vector<int>		_servers_fd;
+		std::vector<int>		_socks_fd;
 	
 };
 

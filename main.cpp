@@ -6,14 +6,15 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:04:57 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/10 12:52:25 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/11 17:00:53 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 
 #include "Server.hpp"
 #include <iostream>
-
+#include <cerrno>
+#include <cstdio>
 
 int main () {
 	try{
@@ -21,6 +22,7 @@ int main () {
 		settings.push_back(Settings(8080)); 
 		settings.push_back(Settings(12345)); 
 		Server server(settings);
+		server.run();
 		
 	}
 	catch (std::exception & e){
