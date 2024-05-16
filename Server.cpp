@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/11 18:29:58 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/16 12:52:35 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,10 +131,8 @@ void	Server::run() {
 						wc = send(events[i].data.fd, cur_state->second.buffer.c_str(), cur_state->second.buffer.size(), 0);
 					}
 					if (wc < 0) {
-						if (errno != EWOULDBLOCK) {
-							perror("send() failed");
-							close_conn = true;
-						}
+						perror("send() failed");
+						close_conn = true;
 					}
 					else  {
 						// erase the buffer anyway, and keep the connection open
@@ -154,10 +152,8 @@ void	Server::run() {
 						throw std::runtime_error("State not found");
 					rc = recv(events[i].data.fd, buffer, sizeof(buffer), 0);
 					if (rc < 0) {
-						if (errno != EWOULDBLOCK) {
-							perror("recv() failed");	
-							close_conn = true;
-						}
+						perror("recv() failed");	
+						close_conn = true;
 					}
 					else {
 						// If reading ends.
@@ -167,7 +163,6 @@ void	Server::run() {
 
 							// Replace the buffer with the data to send
 							cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
-							// This section will be entered for many times, so we need to do this
 						}
 						else {
 							cur_state->second.buffer.append(buffer, rc);
