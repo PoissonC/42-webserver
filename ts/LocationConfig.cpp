@@ -6,13 +6,13 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/19 12:34:34 by yu                #+#    #+#             */
-/*   Updated: 2024/05/19 13:41:14 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/20 02:10:45 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "LocationConfig.hpp"
 
-LocationConfig::LocationConfig() : _root(""), _cgi_pass(""), _autoindex(false), _client_body_buffer_size(8 * 1024) {
+LocationConfig::LocationConfig() : _root(), _cgi_pass(), _client_upload("forbidden"), _redir(std::make_pair (0, "")), _autoindex(false), _client_body_buffer_size(8 * 1024) {
 	for (int i = 0; i < 3; i++)
 		_allow_methods[i] = true;
 }
@@ -57,6 +57,35 @@ void	LocationConfig::setCgiPass(const std::vector<std::string> &tokens, size_t &
 	_cgi_pass = tokens[pos++];
 	if (tokens[pos++] != ";")
 		throw std::runtime_error("Expected ';' after cgi_pass");
+}
+
+void	LocationConfig::setClientUpload(const std::vector<std::string> &tokens, size_t &pos) {
+	if (_client_upload != "forbidden")
+		throw std::runtime_error("client_upload already set");
+	_client_upload = tokens[pos++];
+	if (tokens[pos++] != ";")
+		throw std::runtime_error("Expected ';' after client_upload");
+}
+
+void	LocationConfig::setRedir(const std::vector<std::string> &tokens, size_t &pos) {
+	if (tokens[pos] == "301")
+		_redir.first = 301;
+	else if (tokens[pos] == "302")
+		_redir.first = 302;
+	else if (tokens[pos] == "303")
+		_redir.first = 303;
+	else if (tokens[pos] == "307")
+		_redir.first = 307;
+	else if (tokens[pos] == "308")
+		_redir.first = 308;
+	else
+		throw std::runtime_error("Invalid return code");
+	if (pos + 1 == tokens.size())
+		throw std::runtime_error("Expected return url");
+	_redir.second = tokens[++pos];
+	if (tokens[++pos] != ";")
+		throw std::runtime_error("Expected ';' after return");
+	pos++; // skip ';'
 }
 
 void	LocationConfig::setAutoindex(const std::vector<std::string> &tokens, size_t &pos) {
@@ -116,6 +145,18 @@ std::string	LocationConfig::getCgiPass() const {
 	return _cgi_pass;
 }
 
+std::string	LocationConfig::getClientUpload() const {
+	return _client_upload;
+}
+
+std::pair<int, std::string>	LocationConfig::getRedir() const {
+	return _redir;
+}
+
+bool	LocationConfig::getAutoindex() const {
+	return _autoindex;
+}
+
 bool	LocationConfig::getAllowMethods(e_methods method) const {
 	return _allow_methods[method];
 }
@@ -157,10 +198,15 @@ LocationConfig	parseLocation(const std::vector<std::string> &tokens, size_t &pos
 				throw std::runtime_error("Expected client_body_buffer_size");
 			location.setClientBodyBufferSize(tokens, ++pos);
 		}
-		else if (tokens[pos] == "return" || tokens[pos] == "client_body_temp_path") {
-			while (tokens[pos] != ";" && pos < tokens.size())
-				pos++;
-			pos++;
+		else if (tokens[pos] == "return") {
+			if (pos + 1 == tokens.size())
+				throw std::runtime_error("Expected return code");
+			location.setRedir(tokens, ++pos);
+		}
+		else if (tokens[pos] == "client_upload") {
+			if (pos + 1 == tokens.size())
+				throw std::runtime_error("Expected client_upload directory");
+			location.setClientUpload(tokens, ++pos);
 		}
 		else 
 			throw std::runtime_error("Invalid location directive '" + tokens[pos] + "'");

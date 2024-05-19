@@ -4,6 +4,9 @@
 
 std::string readFile(const std::string &filename) {
     std::ifstream file(filename.c_str());
+	if (!file.is_open()) {
+		throw std::runtime_error("Failed to open file: " + filename);
+	}
     std::stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
@@ -45,6 +48,9 @@ int main() {
 			}
 			std::cout << "\n";
             std::cout << "  CGI Pass: " << location.getCgiPass() << "\n";
+			std::cout << "  Autoindex: " << location.getAutoindex() << "\n";
+			std::cout << "  Redirect: " << location.getRedir().first << " " << location.getRedir().second << "\n";
+			std::cout << "  Client Upload: " << location.getClientUpload() << "\n";
             std::cout << "  Client Body Buffer Size: " << location.getClientBodyBufferSize() << "\n";
             std::cout << "  Allow Methods: ";
             if (location.getAllowMethods(GET))

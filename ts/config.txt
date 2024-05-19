@@ -34,7 +34,7 @@ server {
     location /upload {
         root /storage;
         allow_methods POST DELETE GET;
-		client_body_temp_path /storage;
+		client_upload /storage;
         client_max_body_size 2M;
     }
 
