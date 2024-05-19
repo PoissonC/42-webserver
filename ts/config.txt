@@ -1,0 +1,71 @@
+server {
+    listen 0.0.0.0:8000;
+    server_name team.com;
+
+    location / {
+        autoindex off;
+        root /web/team;
+        index index.html;
+        allow_methods GET;
+    }
+}
+
+server {
+    listen 127.0.0.1:8080; 
+    server_name webserv.com;
+
+    location / {
+        autoindex off;
+        root /web;
+        index index.html indexAPI.html;
+        allow_methods GET;
+    }
+
+	location /files {
+		autoindex on;
+        root /web;
+        allow_methods GET;
+	}
+
+	location /files/disney {
+		return 302 https://mickey.disney.com/;
+	}
+
+    location /upload {
+        root /storage;
+        allow_methods POST DELETE GET;
+		client_body_temp_path /storage;
+        client_max_body_size 2M;
+    }
+
+	location /printInput {
+		allow_methods POST;
+		cgi_pass /cgi-bin/print.py;
+	}
+
+	location /sayHello {
+		allow_methods GET;
+		cgi_pass /cgi-bin/hello.py;
+	}
+
+	location /translate {
+		allow_methods POST GET;
+		cgi_pass /cgi-bin/translate.py;
+		client_max_body_size 1000;
+	}
+
+    error_page 403 /web/error_pages/403.html;
+    error_page 404 /web/error_pages/404.html;
+}
+
+server {
+    listen 127.0.0.1:8080; 
+    server_name www.disney.com disney.com;
+
+    location / {
+        autoindex off;
+        root /web/disney;
+        index index.html;
+        allow_methods GET;
+    }
+}
