@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/02 22:00:02 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/11 15:59:52 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 19:12:59 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,6 +84,7 @@ class Server {
 		static bool				_constructed;
 		int						_epoll_fd;
 		std::vector<int>		_socks_fd;
+		std::vector<Settings> &	_settings;
 	
 };
 

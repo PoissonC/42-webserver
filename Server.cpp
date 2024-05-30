@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/16 15:47:37 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 19:52:09 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ static std::vector< std::pair<int, t_state> >::iterator get_state(std::vector< s
 	return states.end();
 }
 
-Server::Server(std::vector<Settings> & servers) {
+Server::Server(std::vector<Settings> & settings) : _settings(settings) {
 	if (_constructed)
 		throw AlreadyConstructed();
 	_constructed = true;
@@ -51,7 +51,7 @@ Server::Server(std::vector<Settings> & servers) {
 
 	// set socket for all servers, bind and listen.
 	{
-		for (std::vector<Settings>::iterator it = servers.begin(); it != servers.end(); it++) {
+		for (std::vector<Settings>::iterator it = settings.begin(); it != settings.end(); it++) {
 			int new_socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 			if (new_socket_fd < 0) {
 				close(_epoll_fd);
@@ -107,11 +107,12 @@ void	Server::run() {
 				int new_sd;
 				// Accept new connections
 				while ((new_sd = accept(events[i].data.fd, NULL, NULL)) != -1) {
-					ev.events = EPOLLIN;
+					ev.events = EPOLLIN | EPOLLHUP | EPOLLERR;
 					ev.data.fd = new_sd;
 					if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, new_sd, &ev) == -1)
 						throw EpollCtlFail();
 					t_state	new_conn;
+					new_conn.sent = false;
 					states.push_back(std::make_pair(new_sd, new_conn));
 				}
 				if (errno != EWOULDBLOCK)
@@ -121,22 +122,29 @@ void	Server::run() {
 			else {
 				char												buffer[BUFFER_SIZE];
 				std::vector< std::pair<int, t_state> >::iterator	cur_state;
-				bool												close_conn = false;
 
 				cur_state = get_state(states, events[i].data.fd);
+				// Close connection if any error occurs (http/1.1 keeps the connection)
+				if (events[i].events & EPOLLHUP || events[i].events & EPOLLERR) {
+					close(events[i].data.fd);
+					epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
+					// This should destroy the cur_state element (free resourses, Chat GPT says so)
+					states.erase(cur_state);
+					std::cout << "connection ends" << std::endl;
+					continue;
+				}
 				if (events[i].events & EPOLLOUT) {
 					// Handle write event
 					int	wc;
 					if (cur_state->second.buffer.size()) {
 						wc = send(events[i].data.fd, cur_state->second.buffer.c_str(), cur_state->second.buffer.size(), 0);
 					}
-					if (wc < 0) {
+					if (wc < 0)
 						perror("send() failed");
-						close_conn = true;
-					}
 					else  {
 						// erase the buffer anyway, and keep the connection open
 						cur_state->second.buffer.erase(0, wc);
+						cur_state->second.sent = false;
 						// If the buffer is empty, we wait for the next request
 						if (cur_state->second.buffer.empty()) {
 							ev.events = EPOLLIN;
@@ -151,16 +159,29 @@ void	Server::run() {
 					if (cur_state == states.end())
 						throw std::runtime_error("State not found");
 					rc = recv(events[i].data.fd, buffer, sizeof(buffer), 0);
-					if (rc < 0) {
+					if (rc < 0)
 						perror("recv() failed");	
-						close_conn = true;
-					}
 					else {
 						// If reading ends.
 						if (rc == 0) {
 							// Handle the request (not implemented yet)
-
-
+							// example usage:
+							for (std::vector<Settings>::iterator it = _settings.begin(); it != _settings.end(); it++) {
+								for (std::vector<ServerConfig>::iterator it2 = it->_servers.begin(); it2 != it->_servers.end(); it2++) {
+									std::cout << "Server: " << it2->getServerNames()[0] << std::endl;
+								}
+							}
+							// Tests for filling buffer
+							// if (cur_state->second.buffer.empty()) { We can use this condition to check if we need to fill the buffer.
+							if (cur_state->second.sent == false) {
+								cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
+								ev.events |= EPOLLOUT;
+								ev.data.fd =cur_state->first;
+								if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
+									throw EpollCtlFail();
+								cur_state->second.sent = true;
+							}
+							
 							// Replace the buffer with the data to send
 							cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
 						}
@@ -170,25 +191,20 @@ void	Server::run() {
 							// this means the reading ends.
 							if (rc < BUFFER_SIZE) {
 								// These just tests
-								cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
-								ev.events |= EPOLLOUT;
-								ev.data.fd =cur_state->first;
-								if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
-									throw EpollCtlFail();
+								if (cur_state->second.sent == false) {
+									cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
+									ev.events |= EPOLLOUT;
+									ev.data.fd =cur_state->first;
+									if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
+										throw EpollCtlFail();
+									cur_state->second.sent = true;
+								}
 							}
 
 							std::cout <<"Respond: "<< cur_state->second.buffer << std::endl;
 						}
 					}
 					
-				}
-				
-				// Close connection if any error occurs (http/1.1 keeps the connection)
-				if (close_conn) {
-					close(events[i].data.fd);
-					epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
-					// This should destroy the cur_state element (free resourses, Chat GPT says so)
-					states.erase(cur_state);
 				}
 			}
 		}
