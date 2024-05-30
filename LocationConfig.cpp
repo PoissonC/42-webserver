@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/19 12:34:34 by yu                #+#    #+#             */
-/*   Updated: 2024/05/20 02:10:45 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 18:14:27 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -161,7 +161,7 @@ bool	LocationConfig::getAllowMethods(e_methods method) const {
 	return _allow_methods[method];
 }
 
-int	LocationConfig::getClientBodyBufferSize() const {
+int		LocationConfig::getClientBodyBufferSize() const {
 	return _client_body_buffer_size;
 }
 

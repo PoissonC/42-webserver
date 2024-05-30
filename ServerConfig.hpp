@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/19 10:44:59 by yu                #+#    #+#             */
-/*   Updated: 2024/05/19 13:52:09 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 16:56:14 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,14 +28,12 @@ class ServerConfig {
 		// getters
 		std::vector<std::string>				getServerNames() const;
 		std::string								getListen() const;
-		std::string								getRoot() const;
 		std::map<int, std::string>				getErrorPages() const;
 		std::map<std::string, LocationConfig>	getLocations() const;
 
 		// setters
 		void									addServerName(const std::vector<std::string> &tokens, size_t &pos);
 		void									setListen(const std::vector<std::string> &tokens, size_t &pos);
-		void									setRoot(const std::vector<std::string> &tokens, size_t &pos);
 		void									addErrorPage(const std::vector<std::string> &tokens, size_t &pos);
 		void									addLocation(const std::string & path, const LocationConfig &location);
 		
@@ -44,7 +42,6 @@ class ServerConfig {
 	private:
 		std::vector<std::string>				_server_name;
 		std::string								_listen;
-		std::string								_root;
 		std::map<std::string, LocationConfig>	_locations;
 		std::map<int, std::string>				_error_pages;
 };

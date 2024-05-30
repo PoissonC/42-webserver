@@ -1,26 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Settings.cpp                                       :+:      :+:    :+:   */
+/*   parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/09 21:08:04 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/19 15:03:30 by yu               ###   ########.fr       */
+/*   Created: 2024/05/30 18:03:41 by yu                #+#    #+#             */
+/*   Updated: 2024/05/30 19:03:43 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Settings.hpp"
-#include <cstdlib>
+#include "parser.hpp"
 
-Settings::Settings(u_int16_t port) {
-    memset(&_addr, 0, sizeof(_addr));
-	_addr.sin_family = AF_INET;
-	_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_addr.sin_port = htons(port);
+static std::string readFile(const std::string &filename) {
+    std::ifstream file(filename.c_str());
+	if (!file.is_open()) {
+		throw std::runtime_error("Failed to open file: " + filename);
+	}
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
 }
 
-std::vector<std::string> tokenize(const std::string &input) {
+static std::vector<std::string> tokenize(const std::string &input) {
     std::istringstream stream(input);
     std::vector<std::string> tokens;
     std::string token;
@@ -54,7 +56,7 @@ std::vector<std::string> tokenize(const std::string &input) {
 	return tokens;
 }
 
-void parseConfig(const std::vector<std::string> &tokens, std::vector<ServerConfig> &servers) {
+static void parseConfig(const std::vector<std::string> &tokens, std::vector<ServerConfig> &servers) {
 	size_t pos = 0;
 	while (pos < tokens.size()) {
 		if (tokens[pos++] == "server") {
@@ -65,6 +67,30 @@ void parseConfig(const std::vector<std::string> &tokens, std::vector<ServerConfi
 		}
 		else {
 			throw std::runtime_error("Expected 'server' at the outermost level");
+		}
+	}
+}
+
+void	parse(std::vector<Settings> & settings, const std::string & filename) {
+	std::vector<std::string> tokens = tokenize(readFile(filename));
+	std::cout << "Start parsing config" << std::endl;
+	std::vector<ServerConfig> servers;
+	parseConfig(tokens, servers);
+	std::cout << "Finish parsing config" << std::endl;
+	for (std::vector<ServerConfig>::iterator Server_it = servers.begin(); Server_it != servers.end(); Server_it++) {
+		// add new server if the listening host:port is not in the settings
+		std::vector<Settings>::iterator Settings_it = settings.begin();
+		for (; Settings_it != settings.end(); Settings_it++) {
+			if (Settings_it->getListen() == Server_it->getListen()) {
+				break;
+			}
+		}
+		if (Settings_it == settings.end()) {
+			Settings s(*Server_it);
+			settings.push_back(s);
+		}
+		else {
+			Settings_it->addServer(*Server_it);
 		}
 	}
 }

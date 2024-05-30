@@ -6,13 +6,14 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/19 11:21:05 by yu                #+#    #+#             */
-/*   Updated: 2024/05/19 13:54:27 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 19:05:26 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ServerConfig.hpp"
+#include <dirent.h> // for checks
 
-ServerConfig::ServerConfig() : _listen("0.0.0.0:80"), _root("./") {
+ServerConfig::ServerConfig() : _listen("0.0.0.0:80") {
 }
 
 std::vector<std::string>	ServerConfig::getServerNames() const {
@@ -21,10 +22,6 @@ std::vector<std::string>	ServerConfig::getServerNames() const {
 
 std::string	ServerConfig::getListen() const {
 	return _listen;
-}
-
-std::string	ServerConfig::getRoot() const {
-	return _root;
 }
 
 std::map<int, std::string>	ServerConfig::getErrorPages() const {
@@ -39,16 +36,6 @@ void	ServerConfig::setListen(const std::vector<std::string> &tokens, size_t &pos
 	_listen = tokens[pos++];
 	if (tokens[pos++] != ";")
 		throw std::runtime_error("Expected ';' after listen");
-}
-
-void	ServerConfig::setRoot(const std::vector<std::string> &tokens, size_t &pos) {
-	_root = tokens[pos++];
-	DIR* dir = opendir(_root.c_str());
-	if (dir == NULL)
-		throw std::runtime_error("Root directory error");
-	closedir(dir);
-	if (tokens[pos++] != ";")
-		throw std::runtime_error("Expected ';' after root");
 }
 
 void	ServerConfig::addServerName(const std::vector<std::string> &tokens, size_t &pos) {
@@ -96,6 +83,37 @@ bool ServerConfig::hasRootLocation() const {
 	return false;
 }
 
+static void	locationCheck(const LocationConfig & loc) {
+	if (!loc.getIndex().empty() && !loc.getCgiPass().empty())
+		throw std::runtime_error("Location: Cannot have both index and cgi_pass");
+	std::string path = "." + loc.getRoot();
+	DIR *dir = opendir(path.c_str());
+	if (dir == NULL)
+		throw std::runtime_error("Location: Root directory does not exist");
+	closedir(dir);
+	if (loc.getClientUpload() != "forbidden") {
+		if (path != "./")
+			dir = opendir((path + loc.getClientUpload()).c_str());
+		else 
+			dir = opendir(loc.getClientUpload().c_str());
+		if (dir == NULL)
+			throw std::runtime_error("Client upload directory does not exist");
+		closedir(dir);
+	}
+	if (!loc.getCgiPass().empty()) {
+		dir = opendir(("." + loc.getCgiPass()).c_str());
+		if (dir == NULL)
+			throw std::runtime_error("Cgi pass directory does not exist");
+		closedir(dir);
+	}
+}
+static void		serverCheck(const ServerConfig & server) {
+	std::map<std::string, LocationConfig> loc = server.getLocations();
+	for (std::map<std::string, LocationConfig>::iterator it = loc.begin(); it != loc.end(); it++) {
+		locationCheck(it->second);
+	}
+}
+
 ServerConfig	parseServer(const std::vector<std::string> &tokens, size_t &pos) {
 	ServerConfig server;
 
@@ -109,11 +127,6 @@ ServerConfig	parseServer(const std::vector<std::string> &tokens, size_t &pos) {
 			if (pos + 1 == tokens.size())
 				throw std::runtime_error("Expected listen address");
 			server.setListen(tokens, ++pos);
-		}
-		else if (tokens[pos] == "root") {
-			if (pos + 1 == tokens.size())
-				throw std::runtime_error("Expected root directory");
-			server.setRoot(tokens, ++pos);
 		}
 		else if (tokens[pos] == "error_page") {
 			if (pos + 1 == tokens.size())
@@ -140,6 +153,6 @@ ServerConfig	parseServer(const std::vector<std::string> &tokens, size_t &pos) {
 	pos++; // skip '}'
 	if (server.hasRootLocation() == false)
 		throw std::runtime_error("Server block must have a root location '/'");
-
+	serverCheck(server);
 	return server;
 }

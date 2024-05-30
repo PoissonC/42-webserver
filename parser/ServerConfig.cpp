@@ -6,7 +6,7 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/19 11:21:05 by yu                #+#    #+#             */
-/*   Updated: 2024/05/30 17:49:34 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 19:05:49 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,7 +108,8 @@ static void	locationCheck(const LocationConfig & loc) {
 	}
 }
 static void		serverCheck(const ServerConfig & server) {
-	for (std::map<std::string, LocationConfig>::iterator it = server.getLocations().begin(); it != server.getLocations().end(); it++) {
+	std::map<std::string, LocationConfig> loc = server.getLocations();
+	for (std::map<std::string, LocationConfig>::iterator it = loc.begin(); it != loc.end(); it++) {
 		locationCheck(it->second);
 	}
 }

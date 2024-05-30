@@ -1,0 +1,21 @@
+server {
+    listen 0.0.0.0:80;
+    server_name default.com;
+
+    location / {
+        autoindex off;
+        index index.html;
+        allow_methods GET;
+    }
+}
+
+server {
+    listen 0.0.0.0:80;
+    server_name second.com;
+
+    location / {
+        autoindex off;
+        index index2.html;
+        allow_methods GET;
+    }
+}
