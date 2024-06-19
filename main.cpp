@@ -6,24 +6,29 @@
 /*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:04:57 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/11 17:00:53 by yu               ###   ########.fr       */
+/*   Updated: 2024/05/30 18:11:57 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
+#include "parser.hpp"
 #include "Server.hpp"
 #include <iostream>
 #include <cerrno>
 #include <cstdio>
 
-int main () {
+int main (int ac, char **av) {
+	if (ac != 2 && ac != 1) {
+		std::cerr << "Usage: " << av[0] << " <config file>(optional)" << std::endl;
+		return 1;
+	}
 	try{
+		std::string filename = "config.txt";
+		if (ac == 2)
+			filename = av[1];
 		std::vector<Settings> settings;
-		settings.push_back(Settings(8080)); 
-		settings.push_back(Settings(12345)); 
+		parse(settings, filename);
 		Server server(settings);
 		server.run();
-		
 	}
 	catch (std::exception & e){
 		if (errno != 0)

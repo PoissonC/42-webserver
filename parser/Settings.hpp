@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Settings.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
+/*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/02 22:05:06 by ychen2            #+#    #+#             */
-/*   Updated: 2024/06/20 01:10:01 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/05/30 18:16:39 by yu               ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,14 +27,5 @@
 #include "ServerConfig.hpp"
 #include "LocationConfig.hpp"
 
-class Settings {
-	public:
-		Settings(const ServerConfig  & server);
-		std::string	getListen() const;
-		void		addServer(const ServerConfig & server);
-		friend class Server;
-	private:
-		int							_socket_fd;
-		struct sockaddr_in			_addr;
-		std::vector<ServerConfig>	_servers;
-};
+void parseConfig(const std::vector<std::string> &tokens, std::vector<ServerConfig> &servers);
+std::vector<std::string> tokenize(const std::string &input);
