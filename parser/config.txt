@@ -39,6 +39,7 @@ server {
     }
 
 	location /printInput {
+		root /path/to/cgi
 		allow_methods POST;
 		cgi_pass /cgi-bin/print.py;
 	}

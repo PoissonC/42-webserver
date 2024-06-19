@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yu <yu@student.42.fr>                      +#+  +:+       +#+        */
+/*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/05/30 19:52:09 by yu               ###   ########.fr       */
+/*   Updated: 2024/06/20 00:44:38 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,7 +79,7 @@ Server::Server(std::vector<Settings> & settings) : _settings(settings) {
 			// Setting up sockets for epoll
 			{
 				struct epoll_event ev;
-				ev.events = EPOLLIN;
+				ev.events = EPOLLIN | EPOLLHUP | EPOLLERR;
 				ev.data.fd = new_socket_fd;
 				if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, new_socket_fd, &ev) < 0) {
 					close_fds(_socks_fd);
@@ -125,7 +125,8 @@ void	Server::run() {
 
 				cur_state = get_state(states, events[i].data.fd);
 				// Close connection if any error occurs (http/1.1 keeps the connection)
-				if (events[i].events & EPOLLHUP || events[i].events & EPOLLERR) {
+				if (events[i].events & (EPOLLHUP | EPOLLERR)) {
+					std::cout << "dele" << std::endl;
 					close(events[i].data.fd);
 					epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
 					// This should destroy the cur_state element (free resourses, Chat GPT says so)
@@ -135,7 +136,7 @@ void	Server::run() {
 				}
 				if (events[i].events & EPOLLOUT) {
 					// Handle write event
-					int	wc;
+					int	wc = 0;
 					if (cur_state->second.buffer.size()) {
 						wc = send(events[i].data.fd, cur_state->second.buffer.c_str(), cur_state->second.buffer.size(), 0);
 					}
@@ -147,10 +148,11 @@ void	Server::run() {
 						cur_state->second.sent = false;
 						// If the buffer is empty, we wait for the next request
 						if (cur_state->second.buffer.empty()) {
-							ev.events = EPOLLIN;
+							ev.events = EPOLLIN | EPOLLHUP | EPOLLERR;
 							ev.data.fd = cur_state->first;
 							if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
 								throw EpollCtlFail();
+							
 						}
 					}
 				}
@@ -162,20 +164,26 @@ void	Server::run() {
 					if (rc < 0)
 						perror("recv() failed");	
 					else {
+							// std::cout << "Fd: " << cur_state->first << std::endl;
+
 						// If reading ends.
 						if (rc == 0) {
 							// Handle the request (not implemented yet)
 							// example usage:
+
+							std::vector<Settings>::iterator	s_it;
 							for (std::vector<Settings>::iterator it = _settings.begin(); it != _settings.end(); it++) {
-								for (std::vector<ServerConfig>::iterator it2 = it->_servers.begin(); it2 != it->_servers.end(); it2++) {
-									std::cout << "Server: " << it2->getServerNames()[0] << std::endl;
-								}
+								if (it->_socket_fd == cur_state->first)
+									s_it = it;
 							}
+							
+							// cur_state->second.buffer = processRequest(cur_state->second.buffer, *s_it)
+							// std::string processRequest(std::string request, Settings settings)
 							// Tests for filling buffer
 							// if (cur_state->second.buffer.empty()) { We can use this condition to check if we need to fill the buffer.
 							if (cur_state->second.sent == false) {
 								cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
-								ev.events |= EPOLLOUT;
+								ev.events = EPOLLOUT | EPOLLHUP | EPOLLERR;
 								ev.data.fd =cur_state->first;
 								if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
 									throw EpollCtlFail();
@@ -187,13 +195,13 @@ void	Server::run() {
 						}
 						else {
 							cur_state->second.buffer.append(buffer, rc);
-							std::cout  <<"Request: " << cur_state->second.buffer << std::endl;
+							// std::cout  <<"Request: " << cur_state->second.buffer << std::endl;
 							// this means the reading ends.
 							if (rc < BUFFER_SIZE) {
 								// These just tests
 								if (cur_state->second.sent == false) {
 									cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
-									ev.events |= EPOLLOUT;
+									ev.events = EPOLLOUT | EPOLLHUP | EPOLLERR;
 									ev.data.fd =cur_state->first;
 									if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
 										throw EpollCtlFail();
@@ -201,7 +209,7 @@ void	Server::run() {
 								}
 							}
 
-							std::cout <<"Respond: "<< cur_state->second.buffer << std::endl;
+							// std::cout <<"Respond: "<< cur_state->second.buffer << std::endl;
 						}
 					}
 					
