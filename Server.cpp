@@ -6,7 +6,7 @@
 /*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/06/20 00:44:38 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/06/20 01:04:22 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,7 +126,6 @@ void	Server::run() {
 				cur_state = get_state(states, events[i].data.fd);
 				// Close connection if any error occurs (http/1.1 keeps the connection)
 				if (events[i].events & (EPOLLHUP | EPOLLERR)) {
-					std::cout << "dele" << std::endl;
 					close(events[i].data.fd);
 					epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
 					// This should destroy the cur_state element (free resourses, Chat GPT says so)
