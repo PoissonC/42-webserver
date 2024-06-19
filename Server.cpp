@@ -6,7 +6,7 @@
 /*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/06/20 01:04:22 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/06/20 01:23:05 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,7 @@ Server::Server(std::vector<Settings> & settings) : _settings(settings) {
 				close(_epoll_fd);
 				throw SocketFail();
 			}
+			it->_socket_fd = new_socket_fd;
 			_socks_fd.push_back(new_socket_fd);
 			{
 				int on = 1;
@@ -106,13 +107,16 @@ void	Server::run() {
 			if (is_socket(_socks_fd, events[i].data.fd)) {
 				int new_sd;
 				// Accept new connections
-				while ((new_sd = accept(events[i].data.fd, NULL, NULL)) != -1) {
+				struct sockaddr_in	addr_client;
+				socklen_t client_addr_len = sizeof(addr_client);
+				while ((new_sd = accept(events[i].data.fd, (sockaddr*)&addr_client, &client_addr_len)) != -1) {
 					ev.events = EPOLLIN | EPOLLHUP | EPOLLERR;
 					ev.data.fd = new_sd;
 					if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, new_sd, &ev) == -1)
 						throw EpollCtlFail();
 					t_state	new_conn;
 					new_conn.sent = false;
+					new_conn.client_ip = (unsigned char *)&addr_client.sin_addr.s_addr;
 					states.push_back(std::make_pair(new_sd, new_conn));
 				}
 				if (errno != EWOULDBLOCK)
@@ -176,8 +180,8 @@ void	Server::run() {
 									s_it = it;
 							}
 							
-							// cur_state->second.buffer = processRequest(cur_state->second.buffer, *s_it)
-							// std::string processRequest(std::string request, Settings settings)
+							// cur_state->second.buffer = processRequest(cur_state->second.buffer, *s_it, cur_state->second.client_ip)
+							// std::string processRequest(std::string request, Settings settings, unsigned char * client_ip)
 							// Tests for filling buffer
 							// if (cur_state->second.buffer.empty()) { We can use this condition to check if we need to fill the buffer.
 							if (cur_state->second.sent == false) {

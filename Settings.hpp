@@ -6,7 +6,7 @@
 /*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/02 22:05:06 by ychen2            #+#    #+#             */
-/*   Updated: 2024/06/19 20:01:45 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/06/20 01:10:01 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,5 @@ class Settings {
 	private:
 		int							_socket_fd;
 		struct sockaddr_in			_addr;
-		struct sockaddr_in			_addr_client;
 		std::vector<ServerConfig>	_servers;
 };
