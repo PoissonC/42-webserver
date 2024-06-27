@@ -3,6 +3,18 @@
 httpRequestParser::httpRequestParser(const std::string &request) : _req(request)
 {
 	// constructor will initialize the request variable
+	this->_method = "";
+	this->_uri = "";
+	this->_version = "";
+	this->_headers = std::map<std::string, std::string>();
+	this->_body = "";
+	this->_uriComponents = uriComponents();
+	this->_uriComponents.scheme = "";
+	this->_uriComponents.host = "";
+	this->_uriComponents.port = "";
+	this->_uriComponents.path = "";
+	this->_uriComponents.query = "";
+	this->_uriComponents.fragment = "";
 }
 
 httpRequestParser::~httpRequestParser()
@@ -10,7 +22,7 @@ httpRequestParser::~httpRequestParser()
 	// destructor
 }
 
-void httpRequestParser::parse() // parse the request and store the method, uri, version, headers and body in the class variables
+void httpRequestParser::parse()
 {
 	std::istringstream iss(this->_req);
 	std::string line;
@@ -19,38 +31,23 @@ void httpRequestParser::parse() // parse the request and store the method, uri, 
 	std::stringstream bodyStream;
 	while (std::getline(iss, line))
 	{
-		if (inLine) // first line of the request (Method, URI, Version)
+		if (inLine)
 		{
-			size_t pos = line.find(" ");
-			if (pos != std::string::npos)
-			{
-				this->_method = line.substr(0, pos);
-				line.erase(0, pos + 1);
-				pos = line.find(" ");
-				if (pos != std::string::npos)
-				{
-					this->_uri = line.substr(0, pos);
-					line.erase(0, pos + 1);
-					if (line.empty()) // if the version is empty, set it to HTTP/1.1
-						this->_version = "";
-					else
-						this->_version = line;
-				}
-			}
+			if (line.empty())
+				break;
+			parseLineReq(line, this->_method, this->_uri, this->_version);
+			parseUri(this->_uri, this->_uriComponents);
 			inLine = false;
 			inHeaders = true;
 		}
-		else if (inHeaders) // hearders of the request in a map variable
+		if (inHeaders)
 		{
-			size_t pos = line.find(": ");
-			if (pos != std::string::npos)
-			{
-				std::string key = line.substr(0, pos);
-				line.erase(0, pos + 2);
-				this->_headers[key] = line;
-			}
 			if (line == "\r" || line == "\r\n" || line == "\n")
+			{
 				inHeaders = false;
+				continue;
+			}
+			parseHeaders(line, this->_headers);
 		}
 		else
 		{
@@ -58,55 +55,131 @@ void httpRequestParser::parse() // parse the request and store the method, uri, 
 		}
 	}
 	this->_body = bodyStream.str();
-	this->parseUri(); // parse the uri and store the ressource path and the query parameters in the class variables
 }
 
-void httpRequestParser::parseUri() // parse the uri and store the ressource path and the query parameters in the class variables
+void httpRequestParser::parseLineReq(std::string line, std::string &method, std::string &uri, std::string &version)
 {
-	size_t pos = this->_uri.find("?");
+	size_t pos = line.find(" ");
 	if (pos != std::string::npos)
 	{
-		this->_ressourcePath = this->_uri.substr(0, pos);
-		this->_paramQuery = this->_uri.substr(pos + 1);
+		method = line.substr(0, pos);
+		line.erase(0, pos + 1);
+		pos = line.find(" ");
+		if (pos != std::string::npos)
+		{
+			uri = line.substr(0, pos);
+			line.erase(0, pos + 1);
+			version = line;
+			version.erase(version.find_last_not_of("\r\n") + 1);
+		}
+	}
+}
+
+void httpRequestParser::parseHeaders(std::string line, std::map<std::string, std::string> &headers)
+{
+	size_t pos = line.find(": ");
+	if (pos != std::string::npos)
+	{
+		std::string key = line.substr(0, pos);
+		line.erase(0, pos + 2);
+		line.erase(line.find_last_not_of("\r\n") + 1);
+		headers[key] = line;
+	}
+}
+
+void httpRequestParser::parseUri(std::string uri, uriComponents &uriComponents)
+{
+	std::string ressource;
+	std::string query;
+	size_t pos = uri.find("?");
+	if (pos != std::string::npos)
+	{
+		ressource = uri.substr(0, pos);
+		query = uri.substr(pos + 1);
 	}
 	else
 	{
-		this->_ressourcePath = this->_uri;
-		this->_paramQuery = "";
+		ressource = uri;
+		query = "";
 	}
-	// Parse and split the uri into its components
-	std::string uri = this->_uri;
-	size_t posScheme = uri.find("://");
-	if (posScheme != std::string::npos)
+	std::string uriParse = ressource;
+	pos = uriParse.find("://");
+	if (pos != std::string::npos)
 	{
-		this->_uriComponents.scheme = uri.substr(0, posScheme);
-		uri = uri.substr(posScheme + 3);
+		uriComponents.scheme = uriParse.substr(0, pos);
+		uriParse.erase(0, pos + 3);
 	}
-	size_t posHost = uri.find(":");
-	if (posHost != std::string::npos)
+	pos = uriParse.find(":");
+	if (pos != std::string::npos)
 	{
-		this->_uriComponents.host = uri.substr(0, posHost);
-		uri = uri.substr(posHost + 1);
+		uriComponents.host = uriParse.substr(0, pos);
+		uriParse.erase(0, pos + 1);
 	}
-	size_t posPort = uri.find("/");
-	if (posPort != std::string::npos)
+	pos = uriParse.find("/");
+	if (pos != std::string::npos)
 	{
-		this->_uriComponents.port = uri.substr(0, posPort);
-		uri = uri.substr(posPort + 1);
+		if (uriComponents.host.empty())
+			uriComponents.host = uriParse.substr(0, pos);
+		else
+			uriComponents.port = uriParse.substr(0, pos);
+		uriParse.erase(0, pos + 1);
 	}
-	size_t posPath = uri.find("?");
-	if (posPath != std::string::npos)
+	else if (uriComponents.host.empty())
 	{
-		this->_uriComponents.path = uri.substr(0, posPath);
-		uri = uri.substr(posPath + 1);
+		uriComponents.host = uriParse;
+		uriParse = "";
 	}
-	size_t posQuery = uri.find("#");
-	if (posQuery != std::string::npos)
+	if (uriParse.empty())
 	{
-		this->_uriComponents.query = uri.substr(0, posQuery);
-		uri = uri.substr(posQuery + 1);
+		uriComponents.path = "/";
 	}
-	this->_uriComponents.fragment = uri;
+	else
+	{
+		uriComponents.path = "/" + uriParse;
+	}
+	uriParse = query;
+	pos = uriParse.find("#");
+	if (pos != std::string::npos)
+	{
+		uriComponents.query = uriParse.substr(0, pos);
+		uriParse.erase(0, pos + 1);
+		uriComponents.fragment = uriParse;
+	}
+	else
+	{
+		uriComponents.query = uriParse;
+	}
+}
+
+int httpRequestParser::checkRequest()
+{
+	if (this->_method == "" || this->_uri == "" || this->_version == "")
+		return (400);
+	if (this->_method != "GET" && this->_method != "POST" && this->_method != "DELETE")
+		return (400);
+	if (this->_version != "HTTP/1.1")
+		return (400);
+	if (this->_headers.find("Host") == this->_headers.end())
+		return (400);
+	if (this->_headers.find("Content-Length") != this->_headers.end())
+	{
+		if (this->_body.empty() || this->_body.size() != std::stoi(this->_headers["Content-Length"]))
+			return (400);
+	}
+	std::string hostUri = this->_uriComponents.host;
+	std::string hostHeader = this->_headers["Host"];
+	if (!hostUri.empty())
+	{
+		if (hostUri.find("www.") == 0)
+			hostUri = hostUri.substr(4);
+		if (hostHeader.find("www.") == 0)
+			hostHeader = hostHeader.substr(4);
+		if (hostHeader.find(":") != std::string::npos)
+			hostHeader = hostHeader.substr(0, hostHeader.find(":"));
+		if (hostUri != hostHeader)
+			return (400);
+	}
+	return (200);
 }
 
 std::string httpRequestParser::getMethod() const
@@ -132,16 +205,6 @@ std::map<std::string, std::string> httpRequestParser::getHeaders() const
 std::string httpRequestParser::getBody() const
 {
 	return (this->_body);
-}
-
-std::string httpRequestParser::getRessourcePath() const
-{
-	return (this->_ressourcePath);
-}
-
-std::string httpRequestParser::getParamQuery() const
-{
-	return (this->_paramQuery);
 }
 
 uriComponents httpRequestParser::getUriComponents() const

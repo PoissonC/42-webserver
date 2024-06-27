@@ -8,8 +8,6 @@ void testRequest(const std::string &request)
 
     std::cout << "Method: " << parser.getMethod() << std::endl;
     std::cout << "URI: " << parser.getUri() << std::endl;
-    std::cout << "  Ressource Path: " << parser.getRessourcePath() << std::endl;
-    std::cout << "  Param Query: " << parser.getParamQuery() << std::endl;
 	std::cout << "  Uri Components: " << std::endl;
 	std::cout << "    Scheme: " << parser.getUriComponents().scheme << std::endl;
 	std::cout << "    Host: " << parser.getUriComponents().host << std::endl;

@@ -17,7 +17,7 @@ void httpRequestHandler::handleRequest()
 	int code;
 	code = this->checkRequest();
 	if (code != 0)
-		this->response(code);
+		this->response(code, {}, ""); // to setup the response with the code and the headers and the body
 	else
 	{
 		if (this->parser.getMethod() == "GET")
@@ -29,23 +29,49 @@ void httpRequestHandler::handleRequest()
 	}
 }
 
+std::string httpRequestHandler::getResponse()
+{
+	// get the response
+	std::string response;
+	response = this->parser.getRequest();
+	return (response);
+}
+
 int httpRequestHandler::checkRequest()
 {
 	std::string method = this->parser.getMethod();
 	std::string uri = this->parser.getUri();
 	std::string version = this->parser.getVersion();
+	std::map<std::string, std::string> headers;
+	headers["Content-Type"] = "text/html";
 
 	if (method.empty() || uri.empty() || version.empty()) // check if the method, uri or version is empty
-		return (400);
+	{
+		std::string body = "<html><body><h1>400 Bad Request</h1></body></html>";
+		std::string response = this->response(400, headers, body);
+		return (1);
+	}
 	if (version != "HTTP/1.1") // check if the version is HTTP/1.1
-		return (505);
+	{
+		std::string body = "<html><body><h1>505 HTTP Version Not Supported</h1></body></html>";
+		std::string response = this->response(505, headers, body);
+		return (1);
+	}
+	if (this->parser.getHeaders().find("Host") == this->parser.getHeaders().end()) // check if the Host header is present
+	{
+		std::string body = "<html><body><h1>400 Bad Request</h1></body></html>";
+		std::string response = this->response(400, headers, body);
+		return(1);
+	}
 	if (method != "GET" && method != "POST" && method != "DELETE") // check if the method is GET, POST or DELETE
-		return (501);
+	{
+		std::string body = "<html><body><h1>405 Method Not Allowed</h1></body></html>";
+		std::string response = this->response(405, headers, body);
+		return (1);
+	}
 	int codeUri = this->checkUri();
 	if (codeUri != 0) // check the uri
-		return (codeUri);
-	if (this->parser.getHeaders().find("Host") == this->parser.getHeaders().end()) // check if the Host header is present
-		return(400);
+		return (1);
 	return (0);
 }
 
@@ -53,12 +79,27 @@ int httpRequestHandler::checkUri()
 {
 	// to confirme if it is not more easy to handle this part directly in the method checkRequest
 	std::string uri = this->parser.getRessourcePath();
+	std::map<std::string, std::string> headers;
+	headers["Content-Type"] = "text/html";
+
 	if (uri.empty()) // check if the ressource path is empty
-		return (404);
+	{
+		std::string body = "<html><body><h1>400 Bad Request</h1></body></html>";
+		std::string response = this->response(400, headers, body);
+		return (1);
+	}
 	if (uri.find("..") != std::string::npos) // check if the ressource path contains ".."
-		return (403);
+	{
+		std::string body = "<html><body><h1>403 Forbidden</h1></body></html>";
+		std::string response = this->response(403, headers, body);
+		return (1);
+	}
 	if (uri.find("~") != std::string::npos) // check if the ressource path contains "~"
-		return (403);
+	{
+		std::string body = "<html><body><h1>403 Forbidden</h1></body></html>";
+		std::string response = this->response(403, headers, body);
+		return (1);
+	}
 	return (0);
 }
 
@@ -113,7 +154,7 @@ void httpRequestHandler::handleDelete()
 	}
 }
 
-std::string httpRequestHandler::response(int code)
+std::string httpRequestHandler::response(int code, const std::map<std::string, std::string>& _headers, const std::string& body)
 {
 	// send the response https://datatracker.ietf.org/doc/html/rfc2616#page-39
 	std::string response;
@@ -130,13 +171,12 @@ std::string httpRequestHandler::response(int code)
 		{501, "Not Implemented"},
 		{505, "HTTP Version Not Supported"}
 	};
-
-	response = "HTTP/1.1 " + std::to_string(code) + " " + responses[code] + "\r\n";
-	// Add map for the headers and loop through the headers
-	response += "Content-Type: text/html\r\n";
-	response += "Content-Length: 0\r\n";
+	response = "HTTP/1.1 " + std::to_string(code) + " " + responses[code] + "\r\n"; // status line
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) // headers
+	{
+		response += it->first + ": " + it->second + "\r\n";
+	}
 	response += "\r\n";
+	response += body; // body
 	return (response);
-
-	// Add option for the body of the response and more
 }

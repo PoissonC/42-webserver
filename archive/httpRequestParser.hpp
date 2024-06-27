@@ -22,27 +22,26 @@ class httpRequestParser
 		httpRequestParser(const std::string &request);
 		~httpRequestParser();
 		void parse();
-		int checkRequest();
+		void parseUri();
 		std::string getMethod() const;
 		std::string getUri() const;
 		std::string getVersion() const;
 		std::map<std::string, std::string> getHeaders() const;
 		std::string getBody() const;
+		std::string getRessourcePath() const;
+		std::string getParamQuery() const;
 		uriComponents getUriComponents() const;
 
 	private:
-		std::string _req;
 		std::string _method;
 		std::string _uri;
 		std::string _version;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
+		std::string _req;
+		std::string _ressourcePath;
+		std::string _paramQuery;
 		uriComponents _uriComponents;
-
-		static void parseLineReq(std::string line, std::string &method, std::string &uri, std::string &version);
-		static void parseHeaders(std::string line, std::map<std::string, std::string> &headers);
-		static void parseUri(std::string uri, uriComponents &uriComponents);
 };
-
 
 #endif // HTTPREQUESTPARSER_HPP

@@ -14,6 +14,7 @@ class httpRequestHandler
 		httpRequestHandler(const std::string &request);
 		~httpRequestHandler();
 		void handleRequest(); // handle the request
+		std::string getResponse(); // get the response
 
 	private:
 		int checkRequest(); // check if the request is valid
@@ -23,7 +24,7 @@ class httpRequestHandler
 		void handleDelete(); // handle the DELETE request
 
 		httpRequestParser parser;
-		std::string response(int code); // send the response
+		std::string response(int code, const std::map<std::string, std::string>& _headers, const std::string& body);
 
 };
 
