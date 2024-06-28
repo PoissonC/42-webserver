@@ -129,6 +129,8 @@ std::string processRequest(std::string request, Settings settings, unsigned char
 	// return the response
 	return response.getResponse();
 
+}
+
 	/*
 	How to access data in the vector:
 		- parse every server name to find the good one with host.
@@ -141,8 +143,6 @@ std::string processRequest(std::string request, Settings settings, unsigned char
 				- cgi_path
 				- allow methodes
 	*/
-
-
 
 	// parse the request and verify if it is valid (request line, headers, body)
 		// if not valid, return 400 Bad Request
@@ -170,4 +170,3 @@ std::string processRequest(std::string request, Settings settings, unsigned char
 		// response line (version, status code, status message)
 		// headers (Content-Length, Content-Type, etc.)
 		// body (if any)
-}
