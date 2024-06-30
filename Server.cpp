@@ -6,7 +6,7 @@
 /*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/06/20 01:23:05 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/06/29 19:55:06 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,14 +174,14 @@ void	Server::run() {
 							// Handle the request (not implemented yet)
 							// example usage:
 
-							std::vector<Settings>::iterator	s_it;
+							std::vector<Settings>	targets;
 							for (std::vector<Settings>::iterator it = _settings.begin(); it != _settings.end(); it++) {
 								if (it->_socket_fd == cur_state->first)
-									s_it = it;
+									targets.push_back(*it);
 							}
 							
-							// cur_state->second.buffer = processRequest(cur_state->second.buffer, *s_it, cur_state->second.client_ip)
-							// std::string processRequest(std::string request, Settings settings, unsigned char * client_ip)
+							// cur_state->second.buffer = processRequest(cur_state->second.buffer, targets, cur_state->second.client_ip)
+							// std::string processRequest(std::string request, const std::vector<Settings> & settings, unsigned char * client_ip)
 							// Tests for filling buffer
 							// if (cur_state->second.buffer.empty()) { We can use this condition to check if we need to fill the buffer.
 							if (cur_state->second.sent == false) {
