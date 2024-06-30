@@ -182,9 +182,14 @@ int httpRequestParser::checkRequest()
 	return (200);
 }
 
-std::string httpRequestParser::getMethod() const
+e_methods httpRequestParser::getMethod() const
 {
-	return (this->_method);
+	if (this->_method == "GET")
+		return (GET);
+	if (this->_method == "POST")
+		return (POST);
+	if (this->_method == "DELETE")
+		return (DELETE);
 }
 
 std::string httpRequestParser::getUri() const

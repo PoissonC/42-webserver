@@ -1,13 +1,14 @@
 #include "httpRequestParser.hpp"
 #include "httpResponse.hpp"
 
-static void checkConfigRequest(httpRequestParser &parser, httpResponse &response, Settings settings)
+static int checkConfigRequest(httpRequestParser &parser, std::vector<ServerConfig> settings)
 {
 	bool requestValid = false;
 	ServerConfig serverValid;
-	for (const ServerConfig& serverConfig : settings.getServerConfig())
+	for (std::vector<ServerConfig>::iterator serverConfig = settings.begin(); serverConfig != settings.end(); serverConfig++)
 	{
-		for (const std::string & serverName : serverConfig.getServerNames())
+		std::vector<std::string> serverName = serverConfig->getServerName();
+		for (std::vector<std::string>::iterator it = serverName.begin(); serverConfig != settings.end(); serverConfig++)
 		{
 			if (serverName == parser.getUriComponents().host)
 			{
@@ -18,43 +19,47 @@ static void checkConfigRequest(httpRequestParser &parser, httpResponse &response
 		}
 	}
 	if (!requestValid)
-	{
-		response.setStatusCode(404);
-		return;
-	}
+		return (404);
 
 	std::string uri = parser.getUriComponents().path;
 	bool locationValid = false;
-	// find root in location config
-	if (serverValid.getLocationConfig().find("root") != serverValid.getLocationConfig().end())
+	std::string tmpPath = parser.getUriComponents().path;
+	std::map<std::string, LocationConfig> locationConfig = serverValid.getLocationConfig();
+	std::map<std::string, LocationConfig>::iterator tarLocation;
+	while (1)
 	{
-		if (serverValid.getLocationConfig()["root"] = parser.getUriComponents().path)
+		tarLocation = locationConfig.find(tmpPath);
+		if (tarLocation != locationConfig.end())
+		{
 			locationValid = true;
-	}
-	if (serverValid.getLocationConfig().find("cgi_path") != serverValid.getLocationConfig().end())
-	{
-		if (serverValid.getLocationConfig()["cgi_path"] = parser.getUriComponents().path)
-			locationValid = true;
+			break;
+		}
+		else
+		{
+			// remove the last part of the path
+			// if path is empty, break
+		}
 	}
 
-	std::string method = parser.getMethod();
 	bool methodValid = false;
-	std::string methodAllowed = serverValid.getLocationConfig()["allow_methods"];
-	// split methodAllowed by ' ' and check if method is in the list
-	if (methodAllowed.find(method) != std::string::npos)
+	if(tarLocation->getAllowMethods(parser.getMethod()))
 		methodValid = true;
 
 	if (!locationValid || !methodValid)
-	{
-		response.setStatusCode(404);
-		return;
-	}
+		return (404);
 
-	response.setStatusCode(200);
+	setMap(parser, serverName, mapCGI, client_ip);
+	return (200);
 }
 
-static void setMapCGI(httpRequestParser &parser, Settings settings, std::map<std::string, std::string> &mapCGI, unsigned char * client_ip)
+static void setMap(httpRequestParser &parser, ServerConfig settings, std::map<std::string, std::string> &mapCGI, unsigned char * client_ip)
 {
+
+
+
+
+
+
 	// find the server name in the settings
 	// if not found, return 404 Not Found
 	// if found, verify if the request is valid
@@ -70,21 +75,22 @@ static void	executeRequest(httpRequestParser &parser, httpResponse &response, st
 	}
 	else
 	{
-		if (parser.getMethod() == "GET")
+		if (parser.getMethod() == GET)
 		{
+			// creat acces to static file
 			std::string body = "<html><head><title>200 OK</title></head><body><h1>End-Point of the method GET</h1></body></html>";
 			response.setStatusCode(200);
 			response.setBody(body);
 			response.setHeaders({{"Content-Length", std::to_string(body.size())}, {"Content-Type", "text/html"}});
 		}
-		else if (parser.getMethod() == "POST")
+		else if (parser.getMethod() == POST)
 		{
 			std::string body = "<html><head><title>200 OK</title></head><body><h1>End-Point of the method POST</h1></body></html>";
 			response.setStatusCode(200);
 			response.setBody(body);
 			response.setHeaders({{"Content-Length", std::to_string(body.size())}, {"Content-Type", "text/html"}});
 		}
-		else if (parser.getMethod() == "DELETE")
+		else if (parser.getMethod() == DELETE)
 		{
 			std::string body = "<html><head><title>200 OK</title></head><body><h1>End-Point of the method DELETE</h1></body></html>";
 			response.setStatusCode(200);
@@ -94,7 +100,7 @@ static void	executeRequest(httpRequestParser &parser, httpResponse &response, st
 	}
 }
 
-std::string processRequest(std::string request, Settings settings, unsigned char * client_ip)
+std::string processRequest(std::string request, std::vector<ServerConfig> settings, unsigned char * client_ip)
 {
 	// parse the request
 	httpRequestParser parser(request);
@@ -111,15 +117,10 @@ std::string processRequest(std::string request, Settings settings, unsigned char
 	}
 
 	// find the server name in the settings
-	// if not found, return 404 Not Found
-	checkConfigRequest(parser, response, server);
+	std::map<std::string, std::string> mapCGI;
+	requestCode =  checkConfigRequest(parser, settings, mapCGI, client_ip);
 	if (response.getStatusCode() != 200)
 		return response.getResponse();
-
-
-	// setmap for CGI
-	std::map<std::string, std::string> mapCGI;
-	setMapCGI(parser, server, mapCGI, client_ip);
 
 
 	// process the request
@@ -128,7 +129,6 @@ std::string processRequest(std::string request, Settings settings, unsigned char
 
 	// return the response
 	return response.getResponse();
-
 }
 
 	/*

@@ -23,7 +23,7 @@ class httpRequestParser
 		~httpRequestParser();
 		void parse();
 		int checkRequest();
-		std::string getMethod() const;
+		e_methods getMethod() const;
 		std::string getUri() const;
 		std::string getVersion() const;
 		std::map<std::string, std::string> getHeaders() const;
