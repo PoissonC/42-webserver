@@ -26,6 +26,7 @@ static int checkConfigRequest(httpRequestParser &parser, std::vector<ServerConfi
 	std::string tmpPath = parser.getUriComponents().path;
 	std::map<std::string, LocationConfig> locationConfig = serverValid.getLocationConfig();
 	std::map<std::string, LocationConfig>::iterator tarLocation;
+	
 	while (1)
 	{
 		tarLocation = locationConfig.find(tmpPath);
@@ -36,8 +37,9 @@ static int checkConfigRequest(httpRequestParser &parser, std::vector<ServerConfi
 		}
 		else
 		{
-			// remove the last part of the path
-			// if path is empty, break
+			tmpPath = tmpPath.substr(0, tmpPath.find_last_of('/'));
+			if (tmpPath.empty())
+				break;
 		}
 	}
 
@@ -48,23 +50,31 @@ static int checkConfigRequest(httpRequestParser &parser, std::vector<ServerConfi
 	if (!locationValid || !methodValid)
 		return (404);
 
-	setMap(parser, serverName, mapCGI, client_ip);
+	setMap(parser, serverValid, mapCGI, client_ip);
 	return (200);
 }
 
 static void setMap(httpRequestParser &parser, ServerConfig settings, std::map<std::string, std::string> &mapCGI, unsigned char * client_ip)
 {
+		std::string pathTranslated = settings.getLocation.getRoot() + parser.getUriComponents().path;
 
-
-
-
-
-
-	// find the server name in the settings
-	// if not found, return 404 Not Found
-	// if found, verify if the request is valid
-		// if not valid, return 404 Not Found
-		// if valid, return 200 OK
+		mapCGI["METHOD"] = parser.getMethod();
+		mapCGI["CONTENT_TYPE"] = parser.getHeaders()["Content-Type"];
+		mapCGI["CONTENT_LENGTH"] = parser.getHeaders()["Content-Length"];
+		mapCGI["GATEWAY_INTERFACE"] = "CGI/1.1";
+		mapCGI["PATH_INFO"] = parser.getUriComponents().path;
+		mapCGI["PATH_TRANSLATED"] = pathTranslated;
+		mapCGI["QUERY_STRING"] = parser.getUriComponents().query;
+		mapCGI["REMOTE_ADDR"] = client_ip;
+		mapCGI["REMOTE_IDENT"] = "";
+		mapCGI["REMOTE_USER"] = "";
+		mapCGI["REQUEST_METHOD"] = parser.getMethod();
+		mapCGI["REQUEST_URI"] = parser.getUri();
+		mapCGI["SCRIPT_NAME"] = parser.getUriComponents().path;
+		mapCGI["SERVER_NAME"] = parser.getUriComponents().host;
+		mapCGI["SERVER_PROTOCOL"] = parser.getVersion();
+		mapCGI["SERVER_PORT"] = parser.getUriComponents().port;
+		mapCGI["SERVER_SOFTWARE"] = "Webserv";
 }
 
 static void	executeRequest(httpRequestParser &parser, httpResponse &response, std::map<std::string, std::string> mapCGI)
