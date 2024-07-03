@@ -3,9 +3,9 @@ CC 			= c++
 CFLAGS 		= -Wall -Wextra -Werror -std=c++98 #-fsanitize=address
 
 #Sources and objects
-SRC = main.cpp Server.cpp Settings.cpp State.cpp ServerConfig.cpp LocationConfig.cpp parser.cpp
+SRC = main.cpp Server.cpp Settings.cpp State.cpp ServerConfig.cpp LocationConfig.cpp parser.cpp httpRequestParser.cpp processRequest.cpp
 OBJ = $(SRC:.cpp=.o)
-HDR = Server.hpp Settings.hpp State.hpp ServerConfig.hpp LocationConfig.hpp parser.hpp
+HDR = Server.hpp Settings.hpp State.hpp ServerConfig.hpp LocationConfig.hpp parser.hpp httpRequestParser.hpp
 
 NAME = webserv
 

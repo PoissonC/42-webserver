@@ -6,7 +6,7 @@
 /*   By: ychen2 <ychen2@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/07 16:05:27 by ychen2            #+#    #+#             */
-/*   Updated: 2024/06/29 19:55:06 by ychen2           ###   ########.fr       */
+/*   Updated: 2024/07/03 20:31:38 by ychen2           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include "State.hpp"
 
 bool	Server::_constructed = false;
+std::string processRequest(std::string request, std::vector<ServerConfig> settings, unsigned char * client_ip);
 
 static void close_fds(std::vector<int> & fds) {
 	for (std::vector<int>::iterator it = fds.begin(); it != fds.end(); it++) {
@@ -92,6 +93,14 @@ Server::Server(std::vector<Settings> & settings) : _settings(settings) {
 	}
 }
 
+static void close_conn(int fd, int epoll_fd, std::vector< std::pair<int, t_state> > & states, std::vector< std::pair<int, t_state> >::iterator & cur_state) {
+	close(fd);
+	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+	// This should destroy the cur_state element (free resourses, Chat GPT says so)
+	states.erase(cur_state);
+	std::cout << "connection ends" << std::endl;
+}
+
 void	Server::run() {
 	struct epoll_event	events[MAX_EVENTS], ev;
 	int					nfds;
@@ -130,11 +139,7 @@ void	Server::run() {
 				cur_state = get_state(states, events[i].data.fd);
 				// Close connection if any error occurs (http/1.1 keeps the connection)
 				if (events[i].events & (EPOLLHUP | EPOLLERR)) {
-					close(events[i].data.fd);
-					epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL);
-					// This should destroy the cur_state element (free resourses, Chat GPT says so)
-					states.erase(cur_state);
-					std::cout << "connection ends" << std::endl;
+					close_conn(events[i].data.fd, _epoll_fd, states, cur_state);
 					continue;
 				}
 				if (events[i].events & EPOLLOUT) {
@@ -164,58 +169,36 @@ void	Server::run() {
 					if (cur_state == states.end())
 						throw std::runtime_error("State not found");
 					rc = recv(events[i].data.fd, buffer, sizeof(buffer), 0);
+					std::vector<Settings>::iterator targets = _settings.begin();
+					for (; targets != _settings.end(); targets++) {
+						if (targets->_socket_fd == cur_state->first)
+							break;
+					}
+					if (targets == _settings.end())
+						targets = _settings.begin();
 					if (rc < 0)
 						perror("recv() failed");	
 					else {
-							// std::cout << "Fd: " << cur_state->first << std::endl;
-
-						// If reading ends.
-						if (rc == 0) {
-							// Handle the request (not implemented yet)
-							// example usage:
-
-							std::vector<Settings>	targets;
-							for (std::vector<Settings>::iterator it = _settings.begin(); it != _settings.end(); it++) {
-								if (it->_socket_fd == cur_state->first)
-									targets.push_back(*it);
+						cur_state->second.buffer.append(buffer, rc);
+						// The reading ends.
+						if (rc < BUFFER_SIZE) {
+						// std::cout  <<"Request: " << cur_state->second.buffer << std::endl;
+							if (cur_state->second.buffer.empty()) {
+								close_conn(events[i].data.fd, _epoll_fd, states, cur_state);
+								continue;
 							}
-							
-							// cur_state->second.buffer = processRequest(cur_state->second.buffer, targets, cur_state->second.client_ip)
-							// std::string processRequest(std::string request, const std::vector<Settings> & settings, unsigned char * client_ip)
-							// Tests for filling buffer
-							// if (cur_state->second.buffer.empty()) { We can use this condition to check if we need to fill the buffer.
-							if (cur_state->second.sent == false) {
-								cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
+							else if (cur_state->second.sent == false) {
+								cur_state->second.buffer = processRequest(cur_state->second.buffer, targets->_servers, cur_state->second.client_ip);
+								// cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
+								// std::cout <<"Response: " << cur_state->second.buffer << std::endl;
 								ev.events = EPOLLOUT | EPOLLHUP | EPOLLERR;
 								ev.data.fd =cur_state->first;
 								if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
 									throw EpollCtlFail();
 								cur_state->second.sent = true;
 							}
-							
-							// Replace the buffer with the data to send
-							cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
-						}
-						else {
-							cur_state->second.buffer.append(buffer, rc);
-							// std::cout  <<"Request: " << cur_state->second.buffer << std::endl;
-							// this means the reading ends.
-							if (rc < BUFFER_SIZE) {
-								// These just tests
-								if (cur_state->second.sent == false) {
-									cur_state->second.buffer = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 13\n\nHello World!\n";
-									ev.events = EPOLLOUT | EPOLLHUP | EPOLLERR;
-									ev.data.fd =cur_state->first;
-									if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, cur_state->first, &ev) == -1)
-										throw EpollCtlFail();
-									cur_state->second.sent = true;
-								}
-							}
-
-							// std::cout <<"Respond: "<< cur_state->second.buffer << std::endl;
 						}
 					}
-					
 				}
 			}
 		}
