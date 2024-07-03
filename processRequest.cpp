@@ -8,9 +8,9 @@ std::string processRequest(std::string request, std::vector<ServerConfig> settin
 	parser.parse();
 
 	// verify if the request is valid
-	// int requestCode = parser.checkRequest();
-	// if (requestCode != 200)
-	// 	return "";
+	int requestCode = parser.checkRequest();
+	if (requestCode != 200)
+		return "";
 
 
 	std::cout << "Request: " << request << std::endl;
@@ -35,6 +35,5 @@ std::string processRequest(std::string request, std::vector<ServerConfig> settin
     std::cout << "\t Path:\t " << uriComps.path << std::endl;
     std::cout << "\t Query:\t " << uriComps.query << std::endl;
     std::cout << "\t Fragment:\t " << uriComps.fragment << std::endl;
-	exit(0);
 	return ""; // tmp
 }
